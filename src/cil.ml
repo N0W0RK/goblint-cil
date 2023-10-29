@@ -491,6 +491,14 @@ and varinfo = {
                                             introduced to handle VLAs. *)
 }
 
+and asminfo = {
+  attr: attributes;
+  ins: (string option * string * exp) list;
+  outs: (string option * string * (lhost * offset)) list;
+  clobs: string list;
+  loc: location;
+}
+
 (** Storage-class information *)
 and storage =
     NoStorage                         (** The default storage. Nothing is
@@ -812,6 +820,11 @@ and stmtkind =
   | Block of block                      (** Just a block of statements. Use it
                                             as a way to keep some attributes
                                             local *)
+  | Asm of {
+      opcode: string;
+      operands: string list;
+      info: asminfo;
+    }
 
 (** Instructions. They may cause effects directly but may not have control
     flow.*)
@@ -845,9 +858,10 @@ and instr =
                             are used *)
                          (* sm: I've added a notes.txt file which contains more
                             information on interpreting Asm instructions *)
+  (* todo: delete
   | Asm        of attributes * (* Really only const and volatile can appear
                                  here *)
-                  string list *         (* templates (CR-separated) *)
+                  string list list *         (* templates (CR-separated) *)
                   (string option * string * lval) list *
                                           (* outputs must be lvals with
                                              optional names and constraints.
@@ -865,7 +879,7 @@ and instr =
             outputs, each of which is an lvalue with a constraint, (4) a list
             of input expressions along with constraints, (5) clobbered
             registers, and (5) location information *)
-
+  *)
 
 
 (** Describes a location in a source file *)
@@ -1353,7 +1367,7 @@ let mkBlock (slst: stmt list) : block =
 let mkEmptyStmt () = mkStmt (Instr [])
 let mkStmtOneInstr (i: instr) = mkStmt (Instr [i])
 
-let dummyInstr = (Asm([], ["dummy statement!!"], [], [], [], lu))
+let dummyInstr = (Asm([], [["dummy statement!!"]], [], [], [], lu))
 let dummyStmt =  mkStmt (Instr [dummyInstr])
 
 let compactStmts (b: stmt list) : stmt list =
@@ -3714,9 +3728,11 @@ class defaultCilPrinterClass : cilPrinter = object (self)
           ++ self#pAttrs () attrs
           ++ text " ("
           ++ (align
-                ++ (docList ~sep:line
+                (* todo *)
+                (* ++ (docList ~sep:line
                       (fun x -> text ("\"" ^ escape_string x ^ "\""))
-                      () tmpls)
+                      () tmpls) *)
+                ++ text "[instruction]"
                 ++
                 (if outs = [] && ins = [] && clobs = [] then
                   chr ':'
@@ -6006,7 +6022,7 @@ let dExp: doc -> exp =
   fun d -> Const(CStr(sprint ~width:!lineLength d, No_encoding))
 
 let dInstr: doc -> location -> instr =
-  fun d l -> Asm([], [sprint ~width:!lineLength d], [], [], [], l)
+  fun d l -> Asm([], [[sprint ~width:!lineLength d]], [], [], [], l)
 
 let dGlobal: doc -> location -> global =
   fun d l -> GAsm(sprint ~width:!lineLength d, l)

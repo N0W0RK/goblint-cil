@@ -6918,12 +6918,12 @@ and doStatement (s : A.statement) : chunk =
 	let (tmpls', outs', ins', clobs') =
 	  match details with
 	  | None ->
-	      let tmpls' =
+	      (* let tmpls' =
 		      let pattern = Str.regexp "%" in
 		      let escape = Str.global_replace pattern "%%" in
 		      Util.list_map escape tmpls
-	      in
-	      (tmpls', [], [], [])
+	      in *)
+	      (tmpls, [], [], [])
 	  | Some { aoutputs = outs; ainputs = ins; aclobbers = clobs } ->
               let outs' =
 		Util.list_map
@@ -6949,8 +6949,18 @@ and doStatement (s : A.statement) : chunk =
               in
 	      (tmpls, outs', ins', clobs)
 	in
-        !stmts @@
-        (i2c (Asm(attr', tmpls', outs', ins', clobs', loc')))
+        let info : asminfo = {
+          attr = attr';
+          ins = ins';
+          outs = outs';
+          clobs = clobs';
+          loc = loc';
+        } in
+        let instructions = Util.list_map 
+          (fun (opcode::operands) -> mkStmt (Asm { opcode; operands; info; }))
+          tmpls' 
+        in
+        !stmts @@ {empty with stmts = instructions}
 
   with e when continueOnError -> begin
     (ignore (E.log "Error in doStatement (%s)\n" (Printexc.to_string e)));
