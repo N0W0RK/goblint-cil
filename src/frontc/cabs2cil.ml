@@ -6949,15 +6949,50 @@ and doStatement (s : A.statement) : chunk =
               in
 	      (tmpls, outs', ins', clobs)
 	in
-        let info : asminfo = {
+        let mkVars ins outs : varinfo option list =
+          let rec loopOuts ((_, _, lv)::tail) =
+            match lv with (Var v, _) -> 
+              let v = Option.some v in
+              if tail = [] then [v]
+              else v :: loopOuts tail
+            | _ -> loopOuts tail
+          in
+          let rec loopIns ((_, _, exp)::tail) =
+            match exp with (Lval lv) ->
+              match lv with (Var v, _) ->
+                let v = Option.some v in
+                if tail = [] then [v]
+                else v :: loopIns tail
+              | _ -> loopIns tail
+            | _ -> loopIns tail
+          in
+          loopOuts outs @ loopIns ins
+        in
+        let info : asm_info = {
           attr = attr';
           ins = ins';
           outs = outs';
           clobs = clobs';
           loc = loc';
+          vars = mkVars ins' outs';
         } in
+        let mkAsm opcode operands info =
+          let mkOperand operand =
+            let value = String.sub operand 1 (String.length operand) in
+            if operand.[0] = '%' then
+              match int_of_string_opt value with
+              | Some idx -> AsmParameter idx
+              | None -> AsmRegister value
+            else if operand.[0] = '$' then 
+              AsmImmediate value
+            else
+              AsmIndirect operand
+            in
+            let operands = Util.list_map mkOperand operands in
+            Asm { opcode; operands; info; }
+        in
         let instructions = Util.list_map 
-          (fun (opcode::operands) -> mkStmt (Asm { opcode; operands; info; }))
+          (fun (opcode::operands) -> mkStmt (mkAsm opcode operands info))
           tmpls' 
         in
         !stmts @@ {empty with stmts = instructions}

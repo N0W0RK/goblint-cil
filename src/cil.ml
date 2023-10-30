@@ -491,13 +491,20 @@ and varinfo = {
                                             introduced to handle VLAs. *)
 }
 
-and asminfo = {
+and asm_info = {
   attr: attributes;
   ins: (string option * string * exp) list;
   outs: (string option * string * (lhost * offset)) list;
   clobs: string list;
   loc: location;
+  vars: varinfo option list;
 }
+
+and asm_operand =
+    | AsmParameter of int
+    | AsmRegister of string
+    | AsmImmediate of string
+    | AsmIndirect of string
 
 (** Storage-class information *)
 and storage =
@@ -822,8 +829,8 @@ and stmtkind =
                                             local *)
   | Asm of {
       opcode: string;
-      operands: string list;
-      info: asminfo;
+      operands: asm_operand list;
+      info: asm_info;
     }
 
 (** Instructions. They may cause effects directly but may not have control
@@ -1139,7 +1146,6 @@ let get_instrLoc (inst : instr) =
   match inst with
       Set(_, _, loc, _) -> loc
     | Call(_, _, _, loc, _) -> loc
-    | Asm(_, _, _, _, _, loc) -> loc
     | VarDecl(_,loc) -> loc
 let get_globalLoc (g : global) =
   match g with
@@ -1169,6 +1175,7 @@ let rec get_stmtLoc (statement : stmtkind) =
     | Loop (_, loc, _, _, _) -> loc
     | Block b -> if b.bstmts == [] then lu
                  else get_stmtLoc ((List.hd b.bstmts).skind)
+    | Asm a -> a.info.loc
 
 
 (* The next variable identifier to use. Counts up *)

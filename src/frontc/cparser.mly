@@ -245,16 +245,18 @@ let transformOffsetOf (speclist, dtype) member =
     Buffer.contents buffer
 
   (* todo: remove comments which is not that easy because dialect-dependent *)
+  (* todo: don't split at indirect address *)
+  (* todo: get rid of () in (%reg) *)
   let parse_asm template =
-      let lines = String.split_on_char '\n' template in
-      let tokens line = List.filter
-        (fun s -> s <> "")
-        (Str.split (Str.regexp "[ ,\t]") line) 
-      in
-      let instructions = List.filter
-        (fun l -> l <> [])
-        (List.map tokens lines) in
-      instructions
+    let lines = String.split_on_char '\n' template in
+    let tokens line = List.filter
+      (fun s -> s <> "")
+      (Str.split (Str.regexp "[ ,\t]") line) 
+    in
+    let instructions = List.filter
+      (fun l -> l <> [])
+      (List.map tokens lines) in
+    instructions
 
 %}
 

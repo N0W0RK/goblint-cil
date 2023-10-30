@@ -540,13 +540,20 @@ and varinfo = {
      *)
 }
 
-and asminfo = {
+and asm_info = {
   attr: attributes;
   ins: (string option * string * exp) list;
   outs: (string option * string * (lhost * offset)) list;
   clobs: string list;
   loc: location;
+  vars: varinfo option list;
 }
+
+and asm_operand =
+    | AsmParameter of int
+    | AsmRegister of string
+    | AsmImmediate of string
+    | AsmIndirect of string
 
 (** Storage-class information *)
 and storage =
@@ -1017,8 +1024,8 @@ and stmtkind =
 
   | Asm of {
       opcode: string;
-      operands: string list;
-      info: asminfo;
+      operands: asm_operand list;
+      info: asm_info;
     }
 
 (** {b Instructions}.
