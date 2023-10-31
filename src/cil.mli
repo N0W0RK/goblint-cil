@@ -541,7 +541,8 @@ and varinfo = {
 }
 
 and asm_info = {
-  attr: attributes;
+  attrs: attributes;
+  tmpls: string list list;
   ins: (string option * string * exp) list;
   outs: (string option * string * (lhost * offset)) list;
   clobs: string list;

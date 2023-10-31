@@ -843,7 +843,6 @@ module BlockChunk =
         | Set (l, e, loc, eloc) -> Set (l, e, doLoc loc, doLoc eloc)
         | VarDecl (v, loc) -> VarDecl (v, doLoc loc)
         | Call (l, f, a, loc, eloc) -> Call (l, f, a, doLoc loc, doLoc eloc)
-        | Asm (a, b, c, d, e, loc) -> Asm (a, b, c, d, e, doLoc loc)
 
       (** Change all stmt and instr locs to synthetic, except the first one.
           Expressions/initializers that expand to multiple instructions cannot have intermediate locations referenced. *)
@@ -881,6 +880,11 @@ module BlockChunk =
             | Block b ->
               doBlock ~first b;
               s.skind
+            | Asm a ->
+              (* love functional programming *)
+              let loc' = doLoc a.info.loc in
+              let info' = {a.info with loc = loc'} in
+              Asm {a with info = info'}
         and doBlock ~first b =
           doStmts ~first b.bstmts
         and doStmts ~first = function
@@ -6370,7 +6374,6 @@ and doDecl (isglobal: bool) : A.definition -> chunk = function
                 else if hasAttribute "noreturn" e.vattr then false
                 else true
             | Call _ -> true
-            | Asm _ -> true
             | VarDecl _ -> true
             in
             let rec stmtFallsThrough (s: stmt) : bool =
@@ -6402,6 +6405,7 @@ and doDecl (isglobal: bool) : A.definition -> chunk = function
                   (* A loop falls through if it can break. *)
                   blockCanBreak b
               | Block b -> blockFallsThrough b
+              | Asm _ -> true (* todo: maybe this has to be chaged in the future *)
             and blockFallsThrough b =
               let rec fall = function
                   [] -> true
@@ -6969,7 +6973,8 @@ and doStatement (s : A.statement) : chunk =
           loopOuts outs @ loopIns ins
         in
         let info : asm_info = {
-          attr = attr';
+          attrs = attr';
+          tmpls = tmpls';
           ins = ins';
           outs = outs';
           clobs = clobs';
@@ -6981,7 +6986,12 @@ and doStatement (s : A.statement) : chunk =
             let value = String.sub operand 1 (String.length operand) in
             if operand.[0] = '%' then
               match int_of_string_opt value with
-              | Some idx -> AsmParameter idx
+              | Some idx ->
+                let idx = idx - 1 in
+                if 0 < idx && idx <= List.length info.vars then
+                  AsmParameter idx
+                else
+                  failwith (operand ^ " out of range")
               | None -> AsmRegister value
             else if operand.[0] = '$' then 
               AsmImmediate value
