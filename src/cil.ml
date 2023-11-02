@@ -491,9 +491,8 @@ and varinfo = {
                                             introduced to handle VLAs. *)
 }
 
-and asm_info = {
+and asm_ctx = {
   attrs: attributes;
-  tmpls: string list list;
   ins: (string option * string * exp) list;
   outs: (string option * string * (lhost * offset)) list;
   clobs: string list;
@@ -831,7 +830,7 @@ and stmtkind =
   | Asm of {
       opcode: string;
       operands: asm_operand list;
-      info: asm_info;
+      ctx: asm_ctx ref;
     }
 
 (** Instructions. They may cause effects directly but may not have control
@@ -866,6 +865,7 @@ and instr =
                             are used *)
                          (* sm: I've added a notes.txt file which contains more
                             information on interpreting Asm instructions *)
+  | AsmCtx of asm_ctx ref
   (* todo: delete
   | Asm        of attributes * (* Really only const and volatile can appear
                                  here *)

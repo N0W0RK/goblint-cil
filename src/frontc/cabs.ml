@@ -205,6 +205,11 @@ and block =
       bstmts: statement list
     }
 
+and asm_instruction = {
+  parts: string list;
+  labels: string list option;
+}
+
 (* GCC asm directives have lots of extra information to guide the optimizer *)
 and asm_details =
     { aoutputs: (string option * string * expression) list; (* optional name, constraints and expressions for outputs *)
@@ -234,7 +239,7 @@ and statement =
  | DEFINITION of definition (*definition or declaration of a variable or type*)
 
  | ASM of attribute list * (* typically only volatile and const *)
-          string list list * (* template *)
+          asm_instruction list * (* template *)
           asm_details option * (* extra details to guide GCC's optimizer *)
           cabsloc
 

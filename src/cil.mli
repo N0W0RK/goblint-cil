@@ -540,9 +540,8 @@ and varinfo = {
      *)
 }
 
-and asm_info = {
+and asm_ctx = {
   attrs: attributes;
-  tmpls: string list list;
   ins: (string option * string * exp) list;
   outs: (string option * string * (lhost * offset)) list;
   clobs: string list;
@@ -1026,7 +1025,7 @@ and stmtkind =
   | Asm of {
       opcode: string;
       operands: asm_operand list;
-      info: asm_info;
+      info: asm_ctx ref;
     }
 
 (** {b Instructions}.

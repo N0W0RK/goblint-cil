@@ -246,7 +246,6 @@ let transformOffsetOf (speclist, dtype) member =
 
   (* todo: remove comments which is not that easy because dialect-dependent *)
   (* todo: don't split at indirect address *)
-  (* todo: get rid of () in (%reg) *)
   let parse_asm template =
     let lines = String.split_on_char '\n' template in
     let tokens line = List.filter
@@ -255,7 +254,12 @@ let transformOffsetOf (speclist, dtype) member =
     in
     let instructions = List.filter
       (fun l -> l <> [])
-      (List.map tokens lines) in
+      (List.map tokens lines)
+    in
+    let instructions = List.map
+      (fun i -> {parts = i; labels = None})
+      instructions
+    in
     instructions
 
 %}

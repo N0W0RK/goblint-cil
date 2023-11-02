@@ -6910,8 +6910,6 @@ and doStatement (s : A.statement) : chunk =
 *)
         s
 
-
-
     | A.ASM (asmattr, tmpls, details, loc) ->
         (* Make sure all the outs are variables *)
         let loc' = convLoc loc in
@@ -6972,9 +6970,8 @@ and doStatement (s : A.statement) : chunk =
           in
           loopOuts outs @ loopIns ins
         in
-        let info : asm_info = {
+        let ctx : asm_ctx ref = {
           attrs = attr';
-          tmpls = tmpls';
           ins = ins';
           outs = outs';
           clobs = clobs';
@@ -6999,10 +6996,10 @@ and doStatement (s : A.statement) : chunk =
               AsmIndirect operand
             in
             let operands = Util.list_map mkOperand operands in
-            Asm { opcode; operands; info; }
+            Asm { opcode; operands; ctx; }
         in
         let instructions = Util.list_map 
-          (fun (opcode::operands) -> mkStmt (mkAsm opcode operands info))
+          (fun (opcode::operands) -> mkStmt (mkAsm opcode operands ctx))
           tmpls' 
         in
         !stmts @@ {empty with stmts = instructions}
