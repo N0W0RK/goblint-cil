@@ -6949,14 +6949,18 @@ and doStatement (s : A.statement) : chunk =
 	      (tmpls, outs', ins', clobs)
 	in
         let mkVars ins outs : varinfo option list =
-          let rec loopOuts ((_, _, lv)::tail) =
+          let rec loopOuts outs =
+            if outs = [] then [] else
+            let ((_, _, lv)::tail) = outs in
             match lv with (Var v, _) -> 
               let v = Option.some v in
               if tail = [] then [v]
               else v :: loopOuts tail
             | _ -> loopOuts tail
           in
-          let rec loopIns ((_, _, exp)::tail) =
+          let rec loopIns ins =
+            if ins = [] then [] else
+            let ((_, _, exp)::tail) = ins in
             match exp with (Lval lv) ->
               match lv with (Var v, _) ->
                 let v = Option.some v in
