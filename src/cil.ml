@@ -866,6 +866,7 @@ and instr =
                          (* sm: I've added a notes.txt file which contains more
                             information on interpreting Asm instructions *)
   | AsmCtx of asm_ctx ref
+  | ErrorIndicator of string * location
   (* todo: delete
   | Asm        of attributes * (* Really only const and volatile can appear
                                  here *)
@@ -1176,7 +1177,7 @@ let rec get_stmtLoc (statement : stmtkind) =
     | Loop (_, loc, _, _, _) -> loc
     | Block b -> if b.bstmts == [] then lu
                  else get_stmtLoc ((List.hd b.bstmts).skind)
-    | Asm a -> a.info.loc
+    | Asm a -> !(a.ctx).loc
 
 
 (* The next variable identifier to use. Counts up *)
@@ -1378,9 +1379,8 @@ let mkStmtOneInstr (i: instr) = mkStmt (Instr [i])
 (* todo: delete because I don't think this was used anywhere except here
 let dummyInstr = (Asm([], [["dummy statement!!"]], [], [], [], lu))
 *)
-let dummyAsmInfo: asm_info = {
+let dummyAsmCtx: asm_ctx = {
   attrs = [];
-  tmpls = [["nop"]];
   ins = [];
   outs = [];
   clobs = [];
@@ -1390,7 +1390,7 @@ let dummyAsmInfo: asm_info = {
 let dummyStmt =  mkStmt (Asm {
   opcode = "nop"; 
   operands = []; 
-  info = dummyAsmInfo 
+  ctx = ref dummyAsmCtx; 
 })
 
 let compactStmts (b: stmt list) : stmt list =
@@ -3966,13 +3966,13 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                   ++ self#pBlock () b)
     end
     | Block b -> align ++ self#pBlock () b
-    | Asm a -> let {attrs; tmpls; ins; outs; clobs; loc = l; vars} = a.info in
+    | Asm a -> let {attrs; ins; outs; clobs; loc = l; vars} = !(a.ctx) in
       self#pLineDirective l
         ++ text ("__asm__ ")
         ++ self#pAttrs () attrs
         ++ text " ("
         ++ (align
-              (* todo *)
+              (* todo: print the instructions like in cprint.ml *)
               (* ++ (docList ~sep:line
                     (fun x -> text ("\"" ^ escape_string x ^ "\""))
                     () tmpls) *)
@@ -5361,7 +5361,18 @@ and childrenInstr (vis: cilVisitor) (i: instr) : instr =
       let args' = mapNoCopy fExp args in
       if lv' != lv || fn' != fn || args' != args
       then Call(Some lv', fn', args', l, el) else i
-
+  | AsmCtx ctx ->
+      let {attrs = isvol; outs; ins; clobs; loc = l} = !ctx in
+      let outs' = mapNoCopy (fun ((id,s,lv) as pair) ->
+                               let lv' = fLval lv in
+                               if lv' != lv then (id,s,lv') else pair) outs in
+      let ins'  = mapNoCopy (fun ((id,s,e) as pair) ->
+                               let e' = fExp e in
+                               if e' != e then (id,s,e') else pair) ins in
+      if outs' != outs || ins' != ins then begin
+        ctx := {!ctx with outs = outs'; ins = ins'};
+        i;
+      end else i
 
 (* visit all nodes in a Cil statement tree in preorder *)
 and visitCilStmt (vis: cilVisitor) (s: stmt) : stmt =
@@ -5424,15 +5435,6 @@ and childrenStmt (toPrepend: instr list ref) : cilVisitor -> stmt -> stmt =
     | Block b ->
         let b' = fBlock b in
         if b' != b then Block b' else s.skind
-    | Asm(sl,isvol,outs,ins,clobs,l) ->
-        let outs' = mapNoCopy (fun ((id,s,lv) as pair) ->
-                                 let lv' = fLval lv in
-                                 if lv' != lv then (id,s,lv') else pair) outs in
-        let ins'  = mapNoCopy (fun ((id,s,e) as pair) ->
-                                 let e' = fExp e in
-                                 if e' != e then (id,s,e') else pair) ins in
-        if outs' != outs || ins' != ins then
-          Asm(sl,isvol,outs',ins',clobs,l) else i
   in
   if skind' != s.skind then s.skind <- skind';
   (* Visit the labels *)
@@ -6042,7 +6044,7 @@ let dExp: doc -> exp =
   fun d -> Const(CStr(sprint ~width:!lineLength d, No_encoding))
 
 let dInstr: doc -> location -> instr =
-  fun d l -> Asm([], [[sprint ~width:!lineLength d]], [], [], [], l)
+  fun d l -> ErrorIndicator(sprint ~width:!lineLength d, l)
 
 let dGlobal: doc -> location -> global =
   fun d l -> GAsm(sprint ~width:!lineLength d, l)

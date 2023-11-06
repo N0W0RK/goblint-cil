@@ -994,7 +994,8 @@ class unusedRemoverClass : cilVisitor = object(self)
 	  (match IH.find iioh vi.vid with
 	    None -> true | Some _ -> false)
       end
-      | Asm(_,_,slvlst,_,_,_) -> begin
+      | AsmCtx ctx -> begin
+          let slvlst = !ctx.outs in
 	  (* make sure the outputs are in the locals list *)
 	  List.iter (fun (_,s,lv) ->
 	    match lv with (Var vi,_) ->
