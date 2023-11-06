@@ -727,7 +727,7 @@ and print_statement stat =
               print_asm_label
               labels
           | None -> ();
-          printl [String.concat " " i.parts]
+          printl [String.concat " " i.parts; ";"];
         in
         print_list 
           (fun () -> new_line())

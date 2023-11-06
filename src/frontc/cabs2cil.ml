@@ -6372,6 +6372,7 @@ and doDecl (isglobal: bool) : A.definition -> chunk = function
                 else true
             | Call _ -> true
             | VarDecl _ -> true
+            | AsmCtx _ -> true
             in
             let rec stmtFallsThrough (s: stmt) : bool =
               match s.skind with
@@ -6981,7 +6982,7 @@ and doStatement (s : A.statement) : chunk =
         } in
         let mkAsm opcode operands ctx =
           let mkOperand operand =
-            let value = String.sub operand 1 (String.length operand) in
+            let value = String.sub operand 1 (String.length operand - 1) in
             if operand.[0] = '%' then
               match int_of_string_opt value with
               | Some idx ->

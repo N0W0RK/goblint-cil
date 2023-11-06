@@ -1149,6 +1149,7 @@ let get_instrLoc (inst : instr) =
       Set(_, _, loc, _) -> loc
     | Call(_, _, _, loc, _) -> loc
     | VarDecl(_,loc) -> loc
+    | AsmCtx ctx -> !ctx.loc
 let get_globalLoc (g : global) =
   match g with
   | GFun(_,l) -> (l)
@@ -5401,7 +5402,7 @@ and childrenStmt (toPrepend: instr list ref) : cilVisitor -> stmt -> stmt =
   (* Just change the statement kind *)
   let skind' =
     match s.skind with
-      Break _ | Continue _ | Goto _ | Return (None, _) -> s.skind
+      Break _ | Continue _ | Goto _ | Return (None, _) | Asm _ -> s.skind
     | ComputedGoto (e, l) ->
          let e' = fExp e in
          if e' != e then ComputedGoto (e', l) else s.skind
