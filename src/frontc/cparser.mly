@@ -415,7 +415,27 @@ let transformOffsetOf (speclist, dtype) member =
 %type <attribute list list * cabsloc> pointer pointer_opt
 %type <Cabs.cabsloc> location
 %type <Cabs.spec_elem * cabsloc> cvspec
+
+%token <string> labels
+%token <string> parts
+%start assembly_instruction
+
 %%
+
+
+assembly_instruction:
+| LABEL COLON instruction {
+    let labels = [$1] in
+    let parts = $3 in
+    { labels; parts }
+  }
+| instruction {
+    let labels = [] in
+    let parts = $1 in
+    { labels; partss }
+  }
+;
+
 
 interpret:
   file EOF				{$1}
