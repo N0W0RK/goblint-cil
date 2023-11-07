@@ -843,6 +843,7 @@ module BlockChunk =
         | Set (l, e, loc, eloc) -> Set (l, e, doLoc loc, doLoc eloc)
         | VarDecl (v, loc) -> VarDecl (v, doLoc loc)
         | Call (l, f, a, loc, eloc) -> Call (l, f, a, doLoc loc, doLoc eloc)
+        | AsmCtx ctx -> ctx := {!ctx with loc = doLoc !ctx.loc}; AsmCtx ctx
 
       (** Change all stmt and instr locs to synthetic, except the first one.
           Expressions/initializers that expand to multiple instructions cannot have intermediate locations referenced. *)
@@ -880,11 +881,7 @@ module BlockChunk =
             | Block b ->
               doBlock ~first b;
               s.skind
-            | Asm a ->
-              (* love functional programming *)
-              let loc' = doLoc a.info.loc in
-              let info' = {a.info with loc = loc'} in
-              Asm {a with info = info'}
+            | Asm a -> Asm a
         and doBlock ~first b =
           doStmts ~first b.bstmts
         and doStmts ~first = function
@@ -6375,6 +6372,7 @@ and doDecl (isglobal: bool) : A.definition -> chunk = function
                 else true
             | Call _ -> true
             | VarDecl _ -> true
+            | AsmCtx _ -> true
             in
             let rec stmtFallsThrough (s: stmt) : bool =
               match s.skind with
@@ -6952,14 +6950,18 @@ and doStatement (s : A.statement) : chunk =
 	      (tmpls, outs', ins', clobs)
 	in
         let mkVars ins outs : varinfo option list =
-          let rec loopOuts ((_, _, lv)::tail) =
+          let rec loopOuts outs =
+            if outs = [] then [] else
+            let ((_, _, lv)::tail) = outs in
             match lv with (Var v, _) -> 
               let v = Option.some v in
               if tail = [] then [v]
               else v :: loopOuts tail
             | _ -> loopOuts tail
           in
-          let rec loopIns ((_, _, exp)::tail) =
+          let rec loopIns ins =
+            if ins = [] then [] else
+            let ((_, _, exp)::tail) = ins in
             match exp with (Lval lv) ->
               match lv with (Var v, _) ->
                 let v = Option.some v in
@@ -6970,7 +6972,7 @@ and doStatement (s : A.statement) : chunk =
           in
           loopOuts outs @ loopIns ins
         in
-        let ctx : asm_ctx ref = {
+        let ctx : asm_ctx ref = ref {
           attrs = attr';
           ins = ins';
           outs = outs';
@@ -6978,14 +6980,14 @@ and doStatement (s : A.statement) : chunk =
           loc = loc';
           vars = mkVars ins' outs';
         } in
-        let mkAsm opcode operands info =
+        let mkAsm opcode operands ctx =
           let mkOperand operand =
-            let value = String.sub operand 1 (String.length operand) in
+            let value = String.sub operand 1 (String.length operand - 1) in
             if operand.[0] = '%' then
               match int_of_string_opt value with
               | Some idx ->
                 let idx = idx - 1 in
-                if 0 < idx && idx <= List.length info.vars then
+                if 0 < idx && idx <= List.length !ctx.vars then
                   AsmParameter idx
                 else
                   failwith (operand ^ " out of range")
@@ -7000,8 +7002,10 @@ and doStatement (s : A.statement) : chunk =
         in
         let instructions = Util.list_map 
           (fun (opcode::operands) -> mkStmt (mkAsm opcode operands ctx))
-          tmpls' 
+          (*todo: this completely ignores labels *)
+          (List.map (fun i -> i.parts) tmpls')
         in
+        stmts := !stmts @@ {empty with postins = [AsmCtx ctx]};
         !stmts @@ {empty with stmts = instructions}
 
   with e when continueOnError -> begin

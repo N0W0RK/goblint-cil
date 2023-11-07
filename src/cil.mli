@@ -1025,7 +1025,7 @@ and stmtkind =
   | Asm of {
       opcode: string;
       operands: asm_operand list;
-      info: asm_ctx ref;
+      ctx: asm_ctx ref;
     }
 
 (** {b Instructions}.
@@ -1056,6 +1056,8 @@ and instr =
       "__builtin_va_arg". In this case the second argument (which should be a
       type T) is encoded SizeOf(T).
       Second location is just for expression when inside condition. *)
+  | AsmCtx of asm_ctx ref
+  | ErrorIndicator of string * location
 (* todo: delete
   | Asm        of attributes * (* Really only const and volatile can appear
                                  here *)
@@ -1774,7 +1776,9 @@ val compactStmts: stmt list -> stmt list
 val mkEmptyStmt: unit -> stmt
 
 (** A instr to serve as a placeholder *)
+(* todo: delete because I don't think this was used anywhere except here
 val dummyInstr: instr
+*)
 
 (** A statement consisting of just [dummyInstr] *)
 val dummyStmt: stmt

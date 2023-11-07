@@ -714,9 +714,24 @@ and print_statement stat =
         print "__asm__ ";
         print_attributes attrs;
         print "(";
+        new_line ();
+        let print_asm_instr i =
+          let print_asm_label l =
+            printl [l; ":"];
+            space ();
+          in
+          match i.labels with
+          | Some labels -> 
+              print_list
+              (fun () -> new_line ())
+              print_asm_label
+              labels
+          | None -> ();
+          printl [String.concat " " i.parts; ";"];
+        in
         print_list 
           (fun () -> new_line())
-          (fun i -> String.concat " " i |> print_string)
+          print_asm_instr
           tlist; (* templates *)
 	begin
 	  match details with
