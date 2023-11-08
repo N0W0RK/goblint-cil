@@ -6949,50 +6949,42 @@ and doStatement (s : A.statement) : chunk =
               in
 	      (tmpls, outs', ins', clobs)
 	in
-        let mkVars ins outs : varinfo option list =
-          let rec loopOuts outs =
-            if outs = [] then [] else
-            let ((_, _, lv)::tail) = outs in
-            match lv with (Var v, _) -> 
-              let v = Option.some v in
-              if tail = [] then [v]
-              else v :: loopOuts tail
-            | _ -> loopOuts tail
-          in
-          let rec loopIns ins =
-            if ins = [] then [] else
-            let ((_, _, exp)::tail) = ins in
-            match exp with (Lval lv) ->
-              match lv with (Var v, _) ->
-                let v = Option.some v in
-                if tail = [] then [v]
-                else v :: loopIns tail
-              | _ -> loopIns tail
-            | _ -> loopIns tail
-          in
-          loopOuts outs @ loopIns ins
-        in
         let ctx : asm_ctx ref = ref {
           attrs = attr';
           ins = ins';
           outs = outs';
           clobs = clobs';
           loc = loc';
-          vars = mkVars ins' outs';
         } in
+        let mkIdentToIdx ins outs =
+          let table = H.create 10 in
+          let rec loop lst idx =
+            match lst with
+            | [] -> ()
+            | (ident, _, _)::tail ->
+                match ident with
+                | Some ident -> 
+                    H.add table idx ident;
+                    loop tail (idx + 1)
+                | None -> loop tail (idx + 1)
+          in
+          loop (outs @ ins) 0
+        in
         let mkAsm opcode operands ctx =
+          let lenCombined = List.length !ctx.outs + List.length !ctx.ins in
           let mkOperand operand =
-            let value = String.sub operand 1 (String.length operand - 1) in
             if operand.[0] = '%' then
+              (* todo: check if %[identifier] and replace with index *)
+              let value = String.sub operand 1 (String.length operand - 1) in
               match int_of_string_opt value with
               | Some idx ->
-                let idx = idx - 1 in
-                if 0 < idx && idx <= List.length !ctx.vars then
+                if 0 <= idx && idx < lenCombined then
                   AsmParameter idx
                 else
                   failwith (operand ^ " out of range")
               | None -> AsmRegister value
             else if operand.[0] = '$' then 
+              let value = String.sub operand 1 (String.length operand - 1) in
               AsmImmediate value
             else
               AsmIndirect operand

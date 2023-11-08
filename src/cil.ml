@@ -497,7 +497,6 @@ and asm_ctx = {
   outs: (string option * string * (lhost * offset)) list;
   clobs: string list;
   loc: location;
-  vars: varinfo option list;
 }
 
 and asm_operand =
@@ -1385,7 +1384,6 @@ let dummyAsmCtx: asm_ctx = {
   ins = [];
   outs = [];
   clobs = [];
-  vars = [];
   loc = locUnknown;
 }
 let dummyStmt =  mkStmt (Asm {
@@ -1393,6 +1391,18 @@ let dummyStmt =  mkStmt (Asm {
   operands = []; 
   ctx = ref dummyAsmCtx; 
 })
+
+let getAsmParameter ctx idx =
+  let outsLen = List.length !ctx.outs in
+  if 0 <= idx && idx < outsLen then
+    let (_, constr, lv) = List.nth !ctx.outs idx in
+    (constr, Lval lv)
+  else if outsLen <= idx && idx < outsLen + (List.length !ctx.ins) then
+    let idx = idx - outsLen in
+    let (_, constr, expr) = List.nth !ctx.ins idx in
+    (constr, expr)
+  else
+    failwith "unreachable: invalid idx for asmParam"
 
 let compactStmts (b: stmt list) : stmt list =
       (* Try to compress statements. Scan the list of statements and remember
@@ -3745,6 +3755,10 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                    (fun x -> self#pExp () (patchArgNotUseVLACast x)) () args) (* here we would need to remove casts to array types that are not ok *)
              ++ unalign)
         ++ text (")" ^ printInstrTerminator)
+    | AsmCtx ctx ->
+        self#pLineDirective !ctx.loc ++
+        self#pAttrs () !ctx.attrs ++
+        text "__asm__"
 
 
   (**** STATEMENTS ****)
@@ -3967,6 +3981,7 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                   ++ self#pBlock () b)
     end
     | Block b -> align ++ self#pBlock () b
+    (*
     | Asm a -> let {attrs; ins; outs; clobs; loc = l; vars} = !(a.ctx) in
       self#pLineDirective l
         ++ text ("__asm__ ")
@@ -4016,6 +4031,19 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                           clobs)))
               ++ unalign)
         ++ text (")" ^ printInstrTerminator)
+    *)
+    | Asm {opcode; operands; ctx} -> 
+      let printAsmOperand = function
+        | AsmParameter idx ->
+            let (_, expr) = getAsmParameter ctx idx in
+            self#pExp () expr
+        | AsmImmediate str -> text str
+        | AsmRegister str -> text str
+        | AsmIndirect str -> text str
+      in
+      text opcode ++ chr ' ' ++
+      docList ~sep:(text ", ") printAsmOperand () operands ++
+      text printInstrTerminator
 
   (*** GLOBALS ***)
   method pGlobal () (g:global) : doc =       (* global (vars, types, etc.) *)
@@ -6943,7 +6971,6 @@ let pushGlobal (g: global)
            g :: (List.fold_left (fun acc v -> GVarDecl(v, loc) :: acc)
                                 !types vl)
   end
-
 
 type formatArg =
     Fe of exp

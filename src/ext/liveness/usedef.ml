@@ -195,11 +195,10 @@ let computeUseDefStmtKind ?(acc_used=VS.empty)
         List.iter (fun i -> ignore (visitCilInstr useDefVisitor i)) il
     | Block _ -> ()
     | Asm a -> 
-      let vars = !(a.ctx).vars in
       List.iter (function
         | AsmParameter idx ->
-          match Option.join (List.nth_opt vars idx) with
-          | Some var -> varUsed := VS.add var !varUsed
+          match getAsmParameter a.ctx idx with
+          | (_, Lval(Var v, _)) -> varUsed := VS.add v !varUsed
           | _ -> ()
         | _ -> ()
       ) a.operands

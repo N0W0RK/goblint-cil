@@ -546,7 +546,6 @@ and asm_ctx = {
   outs: (string option * string * (lhost * offset)) list;
   clobs: string list;
   loc: location;
-  vars: varinfo option list;
 }
 
 and asm_operand =
@@ -1782,6 +1781,8 @@ val dummyInstr: instr
 
 (** A statement consisting of just [dummyInstr] *)
 val dummyStmt: stmt
+
+val getAsmParameter: asm_ctx ref -> int -> string * exp
 
 (** Make a while loop. Can contain Break or Continue *)
 val mkWhile: guard:exp -> body:stmt list -> stmt list
