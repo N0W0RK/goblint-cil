@@ -244,6 +244,36 @@ let transformOffsetOf (speclist, dtype) member =
       queue;
     Buffer.contents buffer
 
+  let checkAsm asm = match asm with
+    | ASM (attrs, _, details, _) ->
+      let no_labels_but_goto = ref false in
+      let no_goto_but_labels = ref false in
+      let _ = begin
+        match details with
+        | None ->
+          if Option.is_some (List.assoc_opt "goto" attrs) then
+            no_labels_but_goto := true
+          else ()
+        | Some details ->
+          if Option.is_some (List.assoc_opt "goto" attrs) then
+            if Option.is_none details.alabels then
+              no_labels_but_goto := true
+            else ()
+          else if Option.is_some details.alabels then
+            no_goto_but_labels := true
+          else ()
+        ;
+        if !no_labels_but_goto then begin
+          parse_error "expected ':' for labels list in asm goto";
+          raise Parsing.Parse_error
+        end else ();
+        if !no_goto_but_labels then begin
+          parse_error "labels provided in inline asm without goto attribute";
+          raise Parsing.Parse_error
+        end else ();
+      end in asm
+  | _ -> failwith "called checkAsm with non-asm variant"
+
 %}
 
 %token <string * Cabs.cabsloc> IDENT
@@ -982,7 +1012,7 @@ statement_no_null:
 |   GOTO STAR comma_expression SEMICOLON
                                  { COMPGOTO (smooth_expression (fst $3), joinLoc $1 $4) }
 |   ASM asmattr LPAREN asmtemplate asmoutputs RPAREN SEMICOLON
-                        { ASM ($2, $4, $5, joinLoc $1 $7) }
+                        { checkAsm (ASM ($2, $4, $5, joinLoc $1 $7)) }
 |   error location   SEMICOLON   { (NOP $2)}
 ;
 
@@ -1646,6 +1676,7 @@ asmattr:
 |    VOLATILE  asmattr                  { ("volatile", []) :: $2 }
 |    CONST asmattr                      { ("const", []) :: $2 }
 |    INLINE asmattr                     { ("inline", []) :: $2 }
+|    GOTO asmattr                       { ("goto", []) :: $2 }
 ;
 asmtemplate:
     one_string_constant                          { [$1] }
@@ -1654,8 +1685,11 @@ asmtemplate:
 asmoutputs:
   /* empty */           { None }
 | COLON asmoperands asminputs
-                        { let (ins, clobs) = $3 in
-                          Some {aoutputs = $2; ainputs = ins; aclobbers = clobs} }
+                        { let (ins, clobs, labels) = $3 in
+                          Some {aoutputs = $2;
+                                ainputs = ins;
+                                aclobbers = clobs;
+                                alabels = labels} }
 ;
 asmoperands:
      /* empty */                        { [] }
@@ -1672,9 +1706,9 @@ asmoperand:
 ;
 
 asminputs:
-  /* empty */                { ([], []) }
+  /* empty */                { ([], [], None) }
 | COLON asmoperands asmclobber
-                        { ($2, $3) }
+                        { ($2, fst $3, snd $3) }
 ;
 asmopname:
     /* empty */                         { None }
@@ -1682,8 +1716,8 @@ asmopname:
 ;
 
 asmclobber:
-    /* empty */                         { [] }
-| COLON asmclobberlst                   { $2 }
+    /* empty */                         { ([], None) }
+| COLON asmclobberlst asmlabels         { ($2, $3) }
 ;
 asmclobberlst:
     /* empty */                         { [] }
@@ -1693,5 +1727,16 @@ asmclobberlst_ne:
    one_string_constant                           { [$1] }
 |  one_string_constant COMMA asmclobberlst_ne    { $1 :: $3 }
 ;
+asmlabels:
+    /* empty */                         { None }
+| COLON asmlabelslst                    { $2 }
+;
+asmlabelslst:
+    /* empty */                         { Some [] }
+| asmlabelslst_ne                       { Some $1 }
+;
+asmlabelslst_ne:
+  IDENT                               { [fst $1] }
+| IDENT COMMA asmlabelslst_ne         { (fst $1) :: $3 }
 
 %%
