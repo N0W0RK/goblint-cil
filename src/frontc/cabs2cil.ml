@@ -6939,7 +6939,20 @@ and doStatement (s : A.statement) : chunk =
 		    (id, c, lv)) outs
               in
 	      (* Get the side-effects out of expressions *)
-              let ins' =
+        (*new code begin*)           
+
+        let implicit_register_effects = [
+          ("div", ["eax"; "edx"]);  (* div affects eax and edx *)
+          ("mul", ["eax"; "edx"]);  (* mul affects eax and edx *)
+          (* Add more instructions as needed *)
+          ]
+
+          let check_implicit_modifications opcode =
+            try 
+              List.assoc opcode implicit_register_effects
+            with Not_found -> []
+(*new code end*)           
+             let ins' =
 		Util.list_map
 		  (fun (id, c, e) ->
 		    let (se, e', et) = doExp false e (AExp None) in
@@ -6971,6 +6984,10 @@ and doStatement (s : A.statement) : chunk =
           loop (outs @ ins) 0
         in
         let mkAsm opcode operands ctx =
+          (*new code begin*)
+          let implicit_mods = check_implicit_modifications opcode in
+          let modified_registers = List.union implicit_mods (identify_modified_registers opcode operands) in
+          (*new code end*)
           let lenCombined = List.length !ctx.outs + List.length !ctx.ins in
           let mkOperand operand =
             if operand.[0] = '%' then
@@ -6990,10 +7007,22 @@ and doStatement (s : A.statement) : chunk =
               AsmIndirect operand
             in
             let operands = Util.list_map mkOperand operands in
-            Asm { opcode; operands; ctx; }
+            (*new code begin*)
+
+            (*Asm { opcode; operands; ctx; }*)
+            Asm { opcode; operands; ctx; modified_registers }
+          (*new code end*)
+
         in
         let instructions = Util.list_map 
-          (fun (opcode::operands) -> mkStmt (mkAsm opcode operands ctx))
+        (*new code begin*)
+          (*(fun (opcode::operands) -> mkStmt (mkAsm opcode operands ctx))*)
+          (fun (opcode::operands) -> 
+            let asm_inst = mkAsm opcode operands ctx in
+            check_clobber asm_inst ctx;
+            mkStmt asm_inst)
+         (List.map (fun i -> i.parts) tmpls')
+          (*new code end*)
           (*todo: this completely ignores labels *)
           (List.map (fun i -> i.parts) tmpls')
         in
