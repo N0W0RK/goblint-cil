@@ -2652,7 +2652,10 @@ val get_stmtLoc: stmtkind -> location
 val dExp: Pretty.doc -> exp
 
 (** Generate an {!instr} to be used in case of errors. *)
+(* todo: commenting this out is probably a bad idea *)
+(*
 val dInstr: Pretty.doc -> location -> instr
+*)
 
 (** Generate a {!global} to be used in case of errors. *)
 val dGlobal: Pretty.doc -> location -> global

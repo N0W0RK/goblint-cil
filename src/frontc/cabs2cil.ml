@@ -843,7 +843,6 @@ module BlockChunk =
         | Set (l, e, loc, eloc) -> Set (l, e, doLoc loc, doLoc eloc)
         | VarDecl (v, loc) -> VarDecl (v, doLoc loc)
         | Call (l, f, a, loc, eloc) -> Call (l, f, a, doLoc loc, doLoc eloc)
-        | Asm (a, b, c, d, e, loc) -> Asm (a, b, c, d, e, doLoc loc)
 
       (** Change all stmt and instr locs to synthetic, except the first one.
           Expressions/initializers that expand to multiple instructions cannot have intermediate locations referenced. *)
@@ -881,6 +880,7 @@ module BlockChunk =
             | Block b ->
               doBlock ~first b;
               s.skind
+            | Asm (a, b, c, d, e, l, loc) -> Asm (a, b, c, d, e, l, doLoc loc)
         and doBlock ~first b =
           doStmts ~first b.bstmts
         and doStmts ~first = function
@@ -919,6 +919,7 @@ module BlockChunk =
             | Block b ->
               doBlock b;
               s.skind
+            | Asm (a, b, c, d, e, l, loc) -> Asm (a, b, c, d, e, l, doLoc loc)
         and doBlock b =
           doStmts b.bstmts
         and doStmts = function
@@ -6370,7 +6371,6 @@ and doDecl (isglobal: bool) : A.definition -> chunk = function
                 else if hasAttribute "noreturn" e.vattr then false
                 else true
             | Call _ -> true
-            | Asm _ -> true
             | VarDecl _ -> true
             in
             let rec stmtFallsThrough (s: stmt) : bool =
@@ -6402,6 +6402,7 @@ and doDecl (isglobal: bool) : A.definition -> chunk = function
                   (* A loop falls through if it can break. *)
                   blockCanBreak b
               | Block b -> blockFallsThrough b
+              | Asm _ -> true
             and blockFallsThrough b =
               let rec fall = function
                   [] -> true

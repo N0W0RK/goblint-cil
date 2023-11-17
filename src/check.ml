@@ -808,8 +808,11 @@ and checkStmt (s: stmt) =
               findCase !statements)
             cases;
 
-      | Instr il -> List.iter checkInstr il)
+      | Instr il -> List.iter checkInstr il
+      | Asm _ -> ()  (* Not yet implemented *)
+      )
     () (* argument of withContext *)
+
 
 and checkBlock (b: block) : unit =
   List.iter checkStmt b.bstmts
@@ -882,8 +885,6 @@ and checkInstr (i: instr) =
   | VarDecl (v,_) ->
       if not v.vhasdeclinstruction then
         E.s (bug "Encountered a VarDecl, but vhasdeclinstruction for the varinfo is not set")
-
-  | Asm _ -> ()  (* Not yet implemented *)
 
 let rec checkGlobal = function
     GAsm _ -> ()

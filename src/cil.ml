@@ -1126,7 +1126,6 @@ let get_instrLoc (inst : instr) =
   match inst with
       Set(_, _, loc, _) -> loc
     | Call(_, _, _, loc, _) -> loc
-    | Asm(_, _, _, _, _, loc) -> loc
     | VarDecl(_,loc) -> loc
 let get_globalLoc (g : global) =
   match g with
@@ -1156,6 +1155,7 @@ let rec get_stmtLoc (statement : stmtkind) =
     | Loop (_, loc, _, _, _) -> loc
     | Block b -> if b.bstmts == [] then lu
                  else get_stmtLoc ((List.hd b.bstmts).skind)
+    | Asm (_, _, _, _, _, _, loc) -> loc
 
 
 (* The next variable identifier to use. Counts up *)
@@ -1354,8 +1354,8 @@ let mkBlock (slst: stmt list) : block =
 let mkEmptyStmt () = mkStmt (Instr [])
 let mkStmtOneInstr (i: instr) = mkStmt (Instr [i])
 
-let dummyInstr = (Asm([], ["dummy statement!!"], [], [], [], lu))
-let dummyStmt =  mkStmt (Instr [dummyInstr])
+let dummyInstr = (Asm([], ["dummy statement!!"], [], [], [], [], lu))
+let dummyStmt =  mkStmt dummyInstr
 
 let compactStmts (b: stmt list) : stmt list =
       (* Try to compress statements. Scan the list of statements and remember
@@ -3709,53 +3709,6 @@ class defaultCilPrinterClass : cilPrinter = object (self)
              ++ unalign)
         ++ text (")" ^ printInstrTerminator)
 
-    | Asm(attrs, tmpls, outs, ins, clobs, l) ->
-        self#pLineDirective l
-          ++ text ("__asm__ ")
-          ++ self#pAttrs () attrs
-          ++ text " ("
-          ++ (align
-                ++ (docList ~sep:line
-                      (fun x -> text ("\"" ^ escape_string x ^ "\""))
-                      () tmpls)
-                ++
-                (if outs = [] && ins = [] && clobs = [] then
-                  chr ':'
-              else
-                (text ": "
-                    ++ (docList ~sep:(chr ',' ++ break)
-                          (fun (idopt, c, lv) ->
-                          text(match idopt with
-                                None -> ""
-                              | Some id -> "[" ^ id ^ "] "
-                          ) ++
-                            text ("\"" ^ escape_string c ^ "\" (")
-                              ++ self#pLval () lv
-                              ++ text ")") () outs)))
-              ++
-                (if ins = [] && clobs = [] then
-                  nil
-                else
-                  (text ": "
-                      ++ (docList ~sep:(chr ',' ++ break)
-                            (fun (idopt, c, e) ->
-                              text(match idopt with
-                                    None -> ""
-                                  | Some id -> "[" ^ id ^ "] "
-                              ) ++
-                              text ("\"" ^ escape_string c ^ "\" (")
-                                ++ self#pExp () e
-                                ++ text ")") () ins)))
-                ++
-                (if clobs = [] then nil
-                else
-                  (text ": "
-                      ++ (docList ~sep:(chr ',' ++ break)
-                            (fun c -> text ("\"" ^ escape_string c ^ "\""))
-                            ()
-                            clobs)))
-                ++ unalign)
-          ++ text (")" ^ printInstrTerminator)
 
 
   (**** STATEMENTS ****)
@@ -3978,6 +3931,54 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                   ++ self#pBlock () b)
     end
     | Block b -> align ++ self#pBlock () b
+    | Asm(attrs, tmpls, outs, ins, clobs, labels, l) ->
+        (* todo: labels are ignored during printing *)
+        self#pLineDirective l
+          ++ text ("__asm__ ")
+          ++ self#pAttrs () attrs
+          ++ text " ("
+          ++ (align
+                ++ (docList ~sep:line
+                      (fun x -> text ("\"" ^ escape_string x ^ "\""))
+                      () tmpls)
+                ++
+                (if outs = [] && ins = [] && clobs = [] then
+                  chr ':'
+              else
+                (text ": "
+                    ++ (docList ~sep:(chr ',' ++ break)
+                          (fun (idopt, c, lv) ->
+                          text(match idopt with
+                                None -> ""
+                              | Some id -> "[" ^ id ^ "] "
+                          ) ++
+                            text ("\"" ^ escape_string c ^ "\" (")
+                              ++ self#pLval () lv
+                              ++ text ")") () outs)))
+              ++
+                (if ins = [] && clobs = [] then
+                  nil
+                else
+                  (text ": "
+                      ++ (docList ~sep:(chr ',' ++ break)
+                            (fun (idopt, c, e) ->
+                              text(match idopt with
+                                    None -> ""
+                                  | Some id -> "[" ^ id ^ "] "
+                              ) ++
+                              text ("\"" ^ escape_string c ^ "\" (")
+                                ++ self#pExp () e
+                                ++ text ")") () ins)))
+                ++
+                (if clobs = [] then nil
+                else
+                  (text ": "
+                      ++ (docList ~sep:(chr ',' ++ break)
+                            (fun c -> text ("\"" ^ escape_string c ^ "\""))
+                            ()
+                            clobs)))
+                ++ unalign)
+          ++ text (")" ^ printInstrTerminator)
 
 
   (*** GLOBALS ***)
@@ -5326,16 +5327,6 @@ and childrenInstr (vis: cilVisitor) (i: instr) : instr =
       if lv' != lv || fn' != fn || args' != args
       then Call(Some lv', fn', args', l, el) else i
 
-  | Asm(sl,isvol,outs,ins,clobs,l) ->
-      let outs' = mapNoCopy (fun ((id,s,lv) as pair) ->
-                               let lv' = fLval lv in
-                               if lv' != lv then (id,s,lv') else pair) outs in
-      let ins'  = mapNoCopy (fun ((id,s,e) as pair) ->
-                               let e' = fExp e in
-                               if e' != e then (id,s,e') else pair) ins in
-      if outs' != outs || ins' != ins then
-        Asm(sl,isvol,outs',ins',clobs,l) else i
-
 
 (* visit all nodes in a Cil statement tree in preorder *)
 and visitCilStmt (vis: cilVisitor) (s: stmt) : stmt =
@@ -5398,6 +5389,15 @@ and childrenStmt (toPrepend: instr list ref) : cilVisitor -> stmt -> stmt =
     | Block b ->
         let b' = fBlock b in
         if b' != b then Block b' else s.skind
+    | Asm(sl,isvol,outs,ins,clobs,labels,l) ->
+        let outs' = mapNoCopy (fun ((id,s,lv) as pair) ->
+                                 let lv' = visitCilLval vis lv in
+                                 if lv' != lv then (id,s,lv') else pair) outs in
+        let ins'  = mapNoCopy (fun ((id,s,e) as pair) ->
+                                 let e' = fExp e in
+                                 if e' != e then (id,s,e') else pair) ins in
+        if outs' != outs || ins' != ins then
+          Asm(sl,isvol,outs',ins',clobs,labels,l) else s.skind
   in
   if skind' != s.skind then s.skind <- skind';
   (* Visit the labels *)
@@ -5885,7 +5885,7 @@ let rec peepHole1 (* Process one instruction and possibly replace it *)
       | Switch (e, b, _, _, _) -> peepHole1 doone b.bstmts
       | Loop (b, l, el, _, _) -> peepHole1 doone b.bstmts
       | Block b -> peepHole1 doone b.bstmts
-      | Return _ | Goto _ | ComputedGoto _ | Break _ | Continue _ -> ())
+      | Return _ | Goto _ | ComputedGoto _ | Break _ | Continue _ | Asm _ -> ())
     ss
 
 let rec peepHole2  (* Process two instructions and possibly replace them both *)
@@ -5913,7 +5913,7 @@ let rec peepHole2  (* Process two instructions and possibly replace them both *)
       | Loop (b, l, el, _, _) -> peepHole2 dotwo b.bstmts
       | Block b -> peepHole2 dotwo b.bstmts
 
-      | Return _ | Goto _ | ComputedGoto _ | Break _ | Continue _ -> ())
+      | Return _ | Goto _ | ComputedGoto _ | Break _ | Continue _ | Asm _ -> ())
     ss
 
 
@@ -6006,8 +6006,11 @@ let typeSigAttrs = function
 let dExp: doc -> exp =
   fun d -> Const(CStr(sprint ~width:!lineLength d, No_encoding))
 
+(* todo: is this even used anywhere *)
+(*
 let dInstr: doc -> location -> instr =
   fun d l -> Asm([], [sprint ~width:!lineLength d], [], [], [], l)
+*)
 
 let dGlobal: doc -> location -> global =
   fun d l -> GAsm(sprint ~width:!lineLength d, l)
@@ -6518,6 +6521,7 @@ and succpred_stmt s fallthrough rlabels =
                 | hd :: tl -> link s hd ;
                     succpred_block b fallthrough rlabels
                 end
+  | Asm _ -> trylink s fallthrough
 
 
 let caseRangeFold (l: label list) =
@@ -6582,7 +6586,7 @@ let rec xform_switch_stmt s break_dest cont_dest = begin
   | Default(l,el) -> Label(freshLabel "switch_default",l,false)
   ) s.labels ;
   match s.skind with
-  | Instr _ | Return _ | Goto _ | ComputedGoto _ -> ()
+  | Instr _ | Return _ | Goto _ | ComputedGoto _ | Asm _ -> ()
   | Break(l) -> begin try
                   s.skind <- Goto(break_dest (),l)
                 with e ->
