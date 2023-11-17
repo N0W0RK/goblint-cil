@@ -117,8 +117,9 @@ let print_list print_sep print_elt lst =
   ()
 
 let print_commas nl fct lst =
-  print_list (fun () -> print ","; if nl then new_line() else space()) fct lst;
-  print_maybe ","
+  print_list (fun () -> print ","; if nl then new_line() else space()) fct lst
+  (* todo: uncomment *)
+  (* print_maybe "," *)
 
 let print_string (s:string) =
   print ("\"" ^ escape_string s ^ "\"")
@@ -718,15 +719,22 @@ and print_statement stat =
 	begin
 	  match details with
 	  | None -> ()
-	  | Some { aoutputs = outs; ainputs = ins; aclobbers = clobs } ->
+          | Some { aoutputs = outs; ainputs = ins; aclobbers = clobs; alabels = labels } ->
               print ":"; space ();
               print_commas false print_asm_operand outs;
-              if ins <> [] || clobs <> [] then begin
+              let labels_exist = Option.is_some labels in
+              if ins <> [] || clobs <> [] || labels_exist then begin
 		print ":"; space ();
 		print_commas false print_asm_operand ins;
-		if clobs <> [] then begin
+		if clobs <> [] || labels_exist then begin
 		  print ":"; space ();
-		  print_commas false print_string clobs
+                  print_commas false print_string clobs;
+                  if labels_exist then 
+                    let labels = Option.get labels in
+                    if labels <> [] then begin
+                      print ":"; space ();
+                      print_commas false print labels
+                    end;
 		end;
               end
 	end;

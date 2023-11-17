@@ -813,6 +813,34 @@ and stmtkind =
                                             as a way to keep some attributes
                                             local *)
 
+  (* See the GCC specification for the meaning of ASM.
+     If the source is MS VC then only the templates
+     are used *)
+  (* sm: I've added a notes.txt file which contains more
+     information on interpreting Asm instructions *)
+  | Asm        of attributes * (* Really only const and volatile can appear
+          here *)
+  string list *         (* templates (CR-separated) *)
+  (string option * string * lval) list *
+                   (* outputs must be lvals with
+                      optional names and constraints.
+                      I would like these
+                      to be actually variables, but I
+                      run into some trouble with ASMs
+                      in the Linux sources  *)
+  (string option * string * exp) list *
+                 (* inputs with optional names and constraints *)
+  string list *         (* register clobbers *)
+  stmt ref list *       (* referenced labels *)
+  location
+  (** An inline assembly instruction. The arguments are (1) a list of
+  attributes (only const and volatile can appear here and only for
+  GCC), (2) templates (CR-separated), (3) a list of
+  outputs, each of which is an lvalue with a constraint, (4) a list
+  of input expressions along with constraints, (5) clobbered
+  registers, and (5) location information *)
+
+
 (** Instructions. They may cause effects directly but may not have control
     flow.*)
 and instr =
@@ -839,33 +867,6 @@ and instr =
                              the same as the declared type of the function
                              result then an implicit cast exists.
                              Second location is just for expression when inside condition. *)
-
-                         (* See the GCC specification for the meaning of ASM.
-                            If the source is MS VC then only the templates
-                            are used *)
-                         (* sm: I've added a notes.txt file which contains more
-                            information on interpreting Asm instructions *)
-  | Asm        of attributes * (* Really only const and volatile can appear
-                                 here *)
-                  string list *         (* templates (CR-separated) *)
-                  (string option * string * lval) list *
-                                          (* outputs must be lvals with
-                                             optional names and constraints.
-                                             I would like these
-                                             to be actually variables, but I
-                                             run into some trouble with ASMs
-                                             in the Linux sources  *)
-                  (string option * string * exp) list *
-                                        (* inputs with optional names and constraints *)
-                  string list *         (* register clobbers *)
-                  location
-        (** An inline assembly instruction. The arguments are (1) a list of
-            attributes (only const and volatile can appear here and only for
-            GCC), (2) templates (CR-separated), (3) a list of
-            outputs, each of which is an lvalue with a constraint, (4) a list
-            of input expressions along with constraints, (5) clobbered
-            registers, and (5) location information *)
-
 
 
 (** Describes a location in a source file *)

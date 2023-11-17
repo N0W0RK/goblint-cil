@@ -1007,6 +1007,70 @@ and stmtkind =
     (** Just a block of statements. Use it as a way to keep some block
        attributes local *)
 
+  | Asm        of attributes * (* Really only const and volatile can appear
+                                 here *)
+                  string list *         (* templates (CR-separated) *)
+                  (string option * string * lval) list *
+                                          (* outputs must be lvals with
+                                             optional names and constraints.
+                                             I would like these
+                                             to be actually variables, but I
+                                             run into some trouble with ASMs
+                                             in the Linux sources  *)
+                  (string option * string * exp) list *
+                                        (* inputs with optional names and constraints *)
+                  string list *         (* register clobbers *)
+                  stmt ref list *       (* referenced labels *)
+                  location
+    (** There are for storing inline assembly. They follow the GCC
+        specification:
+  {v
+  asm [volatile] ("...template..." "..template.."
+                  : "c1" (o1), "c2" (o2), ..., "cN" (oN)
+                  : "d1" (i1), "d2" (i2), ..., "dM" (iM)
+                  : "r1", "r2", ..., "nL" );
+  v}
+
+  where the parts are
+
+  - [volatile] (optional): when present, the assembler instruction
+    cannot be removed, moved, or otherwise optimized
+  - template: a sequence of strings, with %0, %1, %2, etc. in the string to
+    refer to the input and output expressions. I think they're numbered
+    consecutively, but the docs don't specify. Each string is printed on
+    a separate line.
+  - "ci" (oi): pairs of constraint-string and output-lval; the
+    constraint specifies that the register used must have some
+    property, like being a floating-point register; the constraint
+    string for outputs also has "=" to indicate it is written, or
+    "+" to indicate it is both read and written; 'oi' is the
+    name of a C lvalue (probably a variable name) to be used as
+    the output destination
+  - "dj" (ij): pairs of constraint and input expression; the constraint
+    is similar to the "ci"s.  the 'ij' is an arbitrary C expression
+    to be loaded into the corresponding register
+  - "rk": registers to be regarded as "clobbered" by the instruction;
+    "memory" may be specified for arbitrary memory effects
+
+  an example (from gcc manual):
+  {v
+  asm volatile ("movc3 %0,%1,%2"
+                : /* no outputs */
+                : "g" (from), "g" (to), "g" (count)
+                : "r0", "r1", "r2", "r3", "r4", "r5");
+  v}
+
+  Starting with gcc 3.1, the operands may have names:
+
+  {v
+  asm volatile ("movc3 %[in0],%1,%2"
+                : /* no outputs */
+                : [in0] "g" (from), "g" (to), "g" (count)
+                : "r0", "r1", "r2", "r3", "r4", "r5");
+  v}
+
+  *)
+
 (** {b Instructions}.
  An instruction {!instr} is a statement that has no local
 (intraprocedural) control flow. It can be either an assignment,
@@ -1035,69 +1099,6 @@ and instr =
       "__builtin_va_arg". In this case the second argument (which should be a
       type T) is encoded SizeOf(T).
       Second location is just for expression when inside condition. *)
-
-  | Asm        of attributes * (* Really only const and volatile can appear
-                                 here *)
-                  string list *         (* templates (CR-separated) *)
-                  (string option * string * lval) list *
-                                          (* outputs must be lvals with
-                                             optional names and constraints.
-                                             I would like these
-                                             to be actually variables, but I
-                                             run into some trouble with ASMs
-                                             in the Linux sources  *)
-                  (string option * string * exp) list *
-                                        (* inputs with optional names and constraints *)
-                  string list *         (* register clobbers *)
-                  location
-    (** There are for storing inline assembly. They follow the GCC
-        specification:
-{v
-  asm [volatile] ("...template..." "..template.."
-                  : "c1" (o1), "c2" (o2), ..., "cN" (oN)
-                  : "d1" (i1), "d2" (i2), ..., "dM" (iM)
-                  : "r1", "r2", ..., "nL" );
- v}
-
-where the parts are
-
-  - [volatile] (optional): when present, the assembler instruction
-    cannot be removed, moved, or otherwise optimized
-  - template: a sequence of strings, with %0, %1, %2, etc. in the string to
-    refer to the input and output expressions. I think they're numbered
-    consecutively, but the docs don't specify. Each string is printed on
-    a separate line.
-  - "ci" (oi): pairs of constraint-string and output-lval; the
-    constraint specifies that the register used must have some
-    property, like being a floating-point register; the constraint
-    string for outputs also has "=" to indicate it is written, or
-    "+" to indicate it is both read and written; 'oi' is the
-    name of a C lvalue (probably a variable name) to be used as
-    the output destination
-  - "dj" (ij): pairs of constraint and input expression; the constraint
-    is similar to the "ci"s.  the 'ij' is an arbitrary C expression
-    to be loaded into the corresponding register
-  - "rk": registers to be regarded as "clobbered" by the instruction;
-    "memory" may be specified for arbitrary memory effects
-
-an example (from gcc manual):
-{v
-  asm volatile ("movc3 %0,%1,%2"
-                : /* no outputs */
-                : "g" (from), "g" (to), "g" (count)
-                : "r0", "r1", "r2", "r3", "r4", "r5");
- v}
-
- Starting with gcc 3.1, the operands may have names:
-
-{v
-  asm volatile ("movc3 %[in0],%1,%2"
-                : /* no outputs */
-                : [in0] "g" (from), "g" (to), "g" (count)
-                : "r0", "r1", "r2", "r3", "r4", "r5");
- v}
-
-*)
 
 (** Describes a location in a source file. *)
 and location = {

@@ -248,7 +248,9 @@ let _ = Sys.set_signal Sys.sigsegv (Sys.Signal_handle handleSEGV);
 
 begin
   try
-    theMain ();
+    (* theMain (); *)
+    let cabs = F.parse_to_cabs "test_asm.c" in 
+    Cprint.printFile stdout cabs
   with F.CabsOnly -> (* this is OK *) ()
 end;
 cleanup ();
