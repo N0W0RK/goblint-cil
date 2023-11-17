@@ -250,7 +250,9 @@ begin
   try
     (* theMain (); *)
     let cabs = F.parse_to_cabs "test_asm.c" in 
-    Cprint.printFile stdout cabs
+    Cprint.printFile stdout cabs;
+    let cil = Cabs2cil.convFile cabs in
+    (C.dumpFile (!C.printerForMaincil) stdout "cil.out") cil;
   with F.CabsOnly -> (* this is OK *) ()
 end;
 cleanup ();

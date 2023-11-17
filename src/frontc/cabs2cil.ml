@@ -6440,7 +6440,7 @@ and doDecl (isglobal: bool) : A.definition -> chunk = function
             (* will we leave this statement or block with a break command? *)
             and stmtCanBreak (s: stmt) : bool =
               match s.skind with
-                Instr _ | Return _ | Continue _ | Goto _ | ComputedGoto _ -> false
+                Instr _ | Return _ | Continue _ | Goto _ | ComputedGoto _ | Asm _ -> false
               | Break _ -> true
               | If (_, b1, b2, _, _) ->
                   blockCanBreak b1 || blockCanBreak b2
