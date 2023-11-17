@@ -1354,8 +1354,7 @@ let mkBlock (slst: stmt list) : block =
 let mkEmptyStmt () = mkStmt (Instr [])
 let mkStmtOneInstr (i: instr) = mkStmt (Instr [i])
 
-let dummyInstr = (Asm([], ["dummy statement!!"], [], [], [], [], lu))
-let dummyStmt =  mkStmt dummyInstr
+let dummyStmt =  mkStmt (Asm([], ["dummy statement!!"], [], [], [], [], lu))
 
 let compactStmts (b: stmt list) : stmt list =
       (* Try to compress statements. Scan the list of statements and remember
@@ -6011,6 +6010,8 @@ let dExp: doc -> exp =
 let dInstr: doc -> location -> instr =
   fun d l -> Asm([], [sprint ~width:!lineLength d], [], [], [], l)
 *)
+let dStmt: doc -> location -> stmt =
+  fun d l -> mkStmt (Asm([], [sprint ~width:!lineLength d], [], [], [], [], l))
 
 let dGlobal: doc -> location -> global =
   fun d l -> GAsm(sprint ~width:!lineLength d, l)

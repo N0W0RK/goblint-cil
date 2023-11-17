@@ -4972,7 +4972,7 @@ and doExp (asconst: bool)   (* This expression is used as a constant *)
   with e when continueOnError -> begin
     (*ignore (E.log "error in doExp (%s)" (Printexc.to_string e));*)
     E.hadErrors := true;
-    (i2c (dInstr (dprintf "booo_exp(%t)" d_thisloc) !currentLoc),
+    (s2c (dStmt (dprintf "booo_exp(%t)" d_thisloc) !currentLoc),
      integer 0, intType)
   end
 

@@ -1753,7 +1753,10 @@ val compactStmts: stmt list -> stmt list
 val mkEmptyStmt: unit -> stmt
 
 (** A instr to serve as a placeholder *)
+(* todo: maybe this can be removed? *)
+(*
 val dummyInstr: instr
+*)
 
 (** A statement consisting of just [dummyInstr] *)
 val dummyStmt: stmt
@@ -2656,6 +2659,7 @@ val dExp: Pretty.doc -> exp
 (*
 val dInstr: Pretty.doc -> location -> instr
 *)
+val dStmt: Pretty.doc -> location -> stmt
 
 (** Generate a {!global} to be used in case of errors. *)
 val dGlobal: Pretty.doc -> location -> global
