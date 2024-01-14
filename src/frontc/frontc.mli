@@ -51,9 +51,6 @@ val resetErrors: unit -> unit
 
 val parse: string -> (unit -> Cil.file)
 
-(* todo: delete *)
-val parse_to_cabs: string -> Cabs.file
-
 val parse_with_cabs: string -> (unit -> Cabs.file * Cil.file)
 
 val parse_standalone_exp: string -> Cabs.expression

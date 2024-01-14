@@ -244,35 +244,37 @@ let transformOffsetOf (speclist, dtype) member =
       queue;
     Buffer.contents buffer
 
-  let checkAsm asm = match asm with
+  (* this makes sure that the labels are only allowed when goto annotation was provided *)
+  let checkAsm asm = 
+    let is_some = function
+      | Some _ -> true
+      | None -> false
+    in
+    let is_none opt = not (is_some opt) in
+    match asm with
     | ASM (attrs, _, details, _) ->
       let no_labels_but_goto = ref false in
       let no_goto_but_labels = ref false in
       let _ = begin
-        match details with
-        | None ->
-          if Option.is_some (List.assoc_opt "goto" attrs) then
-            no_labels_but_goto := true
-          else ()
-        | Some details ->
-          if Option.is_some (List.assoc_opt "goto" attrs) then
-            if Option.is_none details.alabels then
-              no_labels_but_goto := true
-            else ()
-          else if Option.is_some details.alabels then
-            no_goto_but_labels := true
-          else ()
+        match details, (List.assoc_opt "goto" attrs) with
+        | None, Some _ -> 
+          no_labels_but_goto := true
+        | Some details, Some _ when is_none details.alabels ->
+          no_labels_but_goto := true
+        | Some details, None when is_some details.alabels ->
+          no_goto_but_labels := true
+        | _, _ -> ()
         ;
         if !no_labels_but_goto then begin
           parse_error "expected ':' for labels list in asm goto";
           raise Parsing.Parse_error
-        end else ();
+        end;
         if !no_goto_but_labels then begin
           parse_error "labels provided in inline asm without goto attribute";
           raise Parsing.Parse_error
-        end else ();
+        end;
       end in asm
-  | _ -> failwith "called checkAsm with non-asm variant"
+    | _ -> failwith "called checkAsm with non-asm variant"
 
 %}
 
@@ -1729,7 +1731,7 @@ asmclobberlst_ne:
 ;
 asmlabels:
     /* empty */                         { None }
-| COLON asmlabelslst                    { $2 }
+| COLON asmlabelslst                    { $2 } /* This is not asmlabelslst_ne because we distinguish between no labels field (None) and no labels provided (Some []) */
 ;
 asmlabelslst:
     /* empty */                         { Some [] }

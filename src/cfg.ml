@@ -225,7 +225,7 @@ and cfgStmt (s: stmt) (next:stmt option) (break:stmt option) (cont:stmt option)
       cfgBlock blk (Some s) next (Some s) nodeList rlabels
       (* Since all loops have terminating condition true, we don't put
          any direct successor to stmt following the loop *)
-  | Asm _ -> addOptionSucc next
+  | Asm _ -> addOptionSucc next (* the extra edges are added inside goblint's cfg *)
 
 (*------------------------------------------------------------*)
 

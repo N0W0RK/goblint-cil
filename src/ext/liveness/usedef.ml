@@ -195,10 +195,6 @@ let computeUseDefStmtKind ?(acc_used=VS.empty)
         List.iter (fun i -> ignore (visitCilInstr useDefVisitor i)) il
     | Block _ -> ()
     | Asm (_, _, outs, ins, _, _, _) ->
-        List.iter (fun (_, _, lval) -> match lval with
-          | (Var v, _) -> varUsed := VS.add v !varUsed
-          | _ -> ()
-        ) outs;
         List.iter (fun (_, _, exp) -> match exp with
           | Lval(Var v, _) -> varUsed := VS.add v !varUsed
           | _ -> ()
@@ -245,11 +241,11 @@ let rec computeDeepUseDefStmtKind ?(acc_used=VS.empty)
       List.iter (fun i -> ignore (visitCilInstr useDefVisitor i)) il;
       !varUsed, !varDefs
   | Block b -> handle_block b
-  | Asm (i, love, ocaml, this, is, so, amazing) -> 
+  | Asm (a, b, c, d, e, f, g) -> 
       computeUseDefStmtKind 
         ~acc_used:!varUsed
         ~acc_defs:!varDefs
-        (Asm (i, love, ocaml, this, is, so, amazing))
+        (Asm (a, b, c, d, e, f, g))
 
 let computeUseLocalTypes ?(acc_used=VS.empty)
                          (fd : fundec)

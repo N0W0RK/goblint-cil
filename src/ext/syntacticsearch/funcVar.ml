@@ -159,10 +159,6 @@ let rec search_instr_list_for_var list name varid includeCallTmp =
       search_expression exp name loc varid includeCallTmp
       @ search_expression_list exp_list name loc varid includeCallTmp
       @ search_instr_list_for_var xs name varid includeCallTmp
-  (* Should I consider Asm too? *)
-  (*
-  | _ :: xs -> search_instr_list_for_var xs name varid includeCallTmp
-  *)
   | [] -> []
 
 (* Finds a variable in a list of statements *)
