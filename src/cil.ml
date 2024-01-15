@@ -3941,7 +3941,7 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                       (fun x -> text ("\"" ^ escape_string x ^ "\""))
                       () tmpls)
                 ++
-                (if outs = [] && ins = [] && clobs = [] then
+                (if outs = [] && ins = [] && clobs = [] && labels = [] then
                   chr ':'
               else
                 (text ": "
@@ -3955,7 +3955,7 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                               ++ self#pLval () lv
                               ++ text ")") () outs)))
               ++
-                (if ins = [] && clobs = [] then
+                (if ins = [] && clobs = [] && labels = [] then
                   nil
                 else
                   (text ": "
@@ -3969,13 +3969,21 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                                 ++ self#pExp () e
                                 ++ text ")") () ins)))
                 ++
-                (if clobs = [] then nil
+                (if clobs = [] && labels = [] then nil
                 else
                   (text ": "
                       ++ (docList ~sep:(chr ',' ++ break)
                             (fun c -> text ("\"" ^ escape_string c ^ "\""))
                             ()
                             clobs)))
+                ++
+                (if labels = [] then nil
+                else
+                  (text ": "
+                      ++ (docList ~sep:(chr ',' ++ break)
+                            (fun l -> self#pStmt () l)
+                            ()
+                            (Util.list_map (!) labels))))
                 ++ unalign)
           ++ text (")" ^ printInstrTerminator)
 
