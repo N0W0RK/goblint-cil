@@ -253,27 +253,17 @@ let transformOffsetOf (speclist, dtype) member =
     let is_none opt = not (is_some opt) in
     match asm with
     | ASM (attrs, _, details, _) ->
-      let no_labels_but_goto = ref false in
-      let no_goto_but_labels = ref false in
-      let _ = begin
+      let _ = 
         match details, (List.assoc_opt "goto" attrs) with
-        | None, Some _ -> 
-          no_labels_but_goto := true
+        | None, Some _
         | Some details, Some _ when is_none details.alabels ->
-          no_labels_but_goto := true
+	  parse_error "expected ':' for labels list in asm goto";
+          raise Parsing.Parse_error
         | Some details, None when is_some details.alabels ->
-          no_goto_but_labels := true
+	  parse_error "labels provided in inline asm without goto attribute";
+          raise Parsing.Parse_error
         | _, _ -> ()
-        ;
-        if !no_labels_but_goto then begin
-          parse_error "expected ':' for labels list in asm goto";
-          raise Parsing.Parse_error
-        end;
-        if !no_goto_but_labels then begin
-          parse_error "labels provided in inline asm without goto attribute";
-          raise Parsing.Parse_error
-        end;
-      end in asm
+      in asm
     | _ -> failwith "called checkAsm with non-asm variant"
 
 %}
