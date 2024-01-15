@@ -255,7 +255,7 @@ let transformOffsetOf (speclist, dtype) member =
     | ASM (attrs, _, details, _) ->
       let _ = 
         match details, (List.assoc_opt "goto" attrs) with
-        | None, Some _ -> 
+        | None, Some _
         | Some details, Some _ when is_none details.alabels ->
 	  parse_error "expected ':' for labels list in asm goto";
           raise Parsing.Parse_error
