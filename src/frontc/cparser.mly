@@ -245,26 +245,24 @@ let transformOffsetOf (speclist, dtype) member =
     Buffer.contents buffer
 
   (* this makes sure that the labels are only allowed when goto annotation was provided *)
-  let checkAsm asm = 
-    let is_some = function
-      | Some _ -> true
-      | None -> false
-    in
-    let is_none opt = not (is_some opt) in
-    match asm with
+  let checkAsm asm =
+    let _ = match asm with
     | ASM (attrs, _, details, _) ->
-      let _ = 
-        match details, (List.assoc_opt "goto" attrs) with
-        | None, Some _
-        | Some details, Some _ when is_none details.alabels ->
-	  parse_error "expected ':' for labels list in asm goto";
-          raise Parsing.Parse_error
-        | Some details, None when is_some details.alabels ->
-	  parse_error "labels provided in inline asm without goto attribute";
-          raise Parsing.Parse_error
-        | _, _ -> ()
-      in asm
-    | _ -> failwith "called checkAsm with non-asm variant"
+      let is_some = function
+        | Some _ -> true
+        | None -> false
+      in
+      let is_none opt = not (is_some opt) in
+      (match details, (List.assoc_opt "goto" attrs) with
+      | Some details, Some _ when is_none details.alabels ->
+        parse_error "expected ':' for labels list in asm goto";
+        raise Parsing.Parse_error
+      | Some details, None when is_some details.alabels ->
+        parse_error "labels provided in inline asm without goto attribute";
+        raise Parsing.Parse_error
+      | _, _ -> ())
+    | _ -> failwith "called checkAsm on non-ASM variant"
+    in asm
 
 %}
 
