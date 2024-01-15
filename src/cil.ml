@@ -3931,7 +3931,27 @@ class defaultCilPrinterClass : cilPrinter = object (self)
     end
     | Block b -> align ++ self#pBlock () b
     | Asm(attrs, tmpls, outs, ins, clobs, labels, l) ->
-        (* todo: labels are ignored during printing *)
+        let rec names_of_stmtrefs stmtrefs =
+          match stmtrefs with
+          | [] -> []
+          | stmtref :: xs -> 
+            let s = !stmtref in
+            let rec names_of_labels = function
+              | [] -> []
+              | Label (name, _, true) :: ys -> name :: names_of_labels ys
+              | Label (_, _, false) :: ys -> names_of_labels ys
+              | _ -> failwith "unreachable"
+            in
+            let names = names_of_labels s.labels in
+            let rest = names_of_stmtrefs xs in
+            let rec prepend_new_names (names: string list) rest =
+              match names with
+              | [] -> rest
+              | name :: ys when not (List.mem name rest) -> prepend_new_names ys (name :: rest)
+              | _ :: ys -> prepend_new_names ys rest
+            in
+            prepend_new_names names rest
+        in
         self#pLineDirective l
           ++ text ("__asm__ ")
           ++ self#pAttrs () attrs
@@ -3981,9 +4001,9 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                 else
                   (text ": "
                       ++ (docList ~sep:(chr ',' ++ break)
-                            (fun l -> self#pStmt () l)
+                            text
                             ()
-                            (Util.list_map (!) labels))))
+                            (names_of_stmtrefs labels))))
                 ++ unalign)
           ++ text (")" ^ printInstrTerminator)
 
