@@ -781,6 +781,7 @@ and print_substatement stat =
 ** GCC Attributes
 *)
 and print_attribute (name,args) =
+  print "HIHIHIHIHIHI";
   if args = [] then printu name
   else begin
     (*print name;*)
