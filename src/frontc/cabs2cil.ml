@@ -6949,15 +6949,12 @@ and doStatement (s : A.statement) : chunk =
 		  ins
               in
               let labels' =
-                match labels with
-                | Some labels -> 
-                    Util.list_map (fun lname -> begin
-                      let lref = ref dummyStmt in
-                      addGoto lname lref;
-                      lref
-                    end)
-                    labels
-                | None -> []
+                Util.list_map (fun lname -> begin
+                  let lref = ref dummyStmt in
+                  addGoto lname lref;
+                  lref
+                end)
+                labels
               in
 	      (tmpls, outs', ins', clobs, labels')
 	in

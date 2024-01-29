@@ -246,23 +246,18 @@ let transformOffsetOf (speclist, dtype) member =
 
   (* this makes sure that the labels are only allowed when goto annotation was provided *)
   let checkAsm asm =
-    let _ = match asm with
+    (match asm with
     | ASM (attrs, _, details, _) ->
-      let is_some = function
-        | Some _ -> true
-        | None -> false
-      in
-      let is_none opt = not (is_some opt) in
       (match details, (List.assoc_opt "goto" attrs) with
-      | Some details, Some _ when is_none details.alabels ->
-        parse_error "expected ':' for labels list in asm goto";
+      | Some details, Some _ when details.alabels = [] ->
+        parse_error "expected non-empty labels list in asm goto";
         raise Parsing.Parse_error
-      | Some details, None when is_some details.alabels ->
+      | Some details, None when details.alabels <> [] ->
         parse_error "labels provided in inline asm without goto attribute";
         raise Parsing.Parse_error
       | _, _ -> ())
-    | _ -> failwith "called checkAsm on non-ASM variant"
-    in asm
+    | _ -> failwith "called checkAsm on non-ASM variant");
+    asm
 
 %}
 
@@ -1696,7 +1691,7 @@ asmoperand:
 ;
 
 asminputs:
-  /* empty */                { ([], [], None) }
+    /* empty */                { ([], [], []) }
 | COLON asmoperands asmclobber
                         { ($2, fst $3, snd $3) }
 ;
@@ -1706,27 +1701,23 @@ asmopname:
 ;
 
 asmclobber:
-    /* empty */                         { ([], None) }
-| COLON asmclobberlst asmlabels         { ($2, $3) }
+    /* empty */                         { ([], []) }
+| COLON asmclobberlst asmlabellst       { ($2, $3) }
 ;
 asmclobberlst:
     /* empty */                         { [] }
-| asmclobberlst_ne                       { $1 }
+| asmclobberlst_ne                      { $1 }
 ;
 asmclobberlst_ne:
    one_string_constant                           { [$1] }
 |  one_string_constant COMMA asmclobberlst_ne    { $1 :: $3 }
 ;
-asmlabels:
-    /* empty */                         { None }
-| COLON asmlabelslst                    { $2 } /* This is not asmlabelslst_ne because we distinguish between no labels field (None) and no labels provided (Some []) */
+asmlabellst:
+    /* empty */                         { [] }
+| COLON asmlabellst_ne                  { $2 }
 ;
-asmlabelslst:
-    /* empty */                         { Some [] }
-| asmlabelslst_ne                       { Some $1 }
-;
-asmlabelslst_ne:
+asmlabellst_ne:
   IDENT                               { [fst $1] }
-| IDENT COMMA asmlabelslst_ne         { (fst $1) :: $3 }
+| IDENT COMMA asmlabellst_ne          { (fst $1) :: $3 }
 
 %%

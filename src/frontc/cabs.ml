@@ -210,7 +210,7 @@ and asm_details =
     { aoutputs: (string option * string * expression) list; (* optional name, constraints and expressions for outputs *)
       ainputs: (string option * string * expression) list; (* optional name, constraints and expressions for inputs *)
       aclobbers: string list; (* clobbered registers *)
-      alabels: string list option; (* referenced labels *)
+      alabels: string list; (* referenced labels *)
     }
 
 and statement =

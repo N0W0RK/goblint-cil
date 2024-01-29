@@ -715,30 +715,25 @@ and print_statement stat =
         print_attributes attrs;
         print "(";
         print_list (fun () -> new_line()) print_string tlist; (* templates *)
-	begin
-	  match details with
-	  | None -> ()
+        begin
+          match details with
+          | None -> ()
           | Some { aoutputs = outs; ainputs = ins; aclobbers = clobs; alabels = labels } ->
               print ":"; space ();
               print_commas false print_asm_operand outs;
-              let labels_exist = match labels with Some _ -> true | None -> false in
-              if ins <> [] || clobs <> [] || labels_exist then begin
-		print ":"; space ();
-		print_commas false print_asm_operand ins;
-		if clobs <> [] || labels_exist then begin
-		  print ":"; space ();
+              if ins <> [] || clobs <> [] || labels <> [] then begin
+                print ":"; space ();
+                print_commas false print_asm_operand ins;
+                if clobs <> [] || labels <> [] then begin
+                  print ":"; space ();
                   print_commas false print_string clobs;
-                  if labels_exist then 
-                    match labels with
-                    | Some [] -> ()
-                    | Some labels ->
-                      print ":"; space ();
-                      print_commas false print labels
-                    | None -> ()
-		end;
-              end
-	end;
-        print ");"
+                  if labels <> [] then 
+                    print ":"; space ();
+                    print_commas false print labels
+                end;
+              end;
+        end;
+        print ");";
       end;
       new_line ()
 
