@@ -781,11 +781,11 @@ and print_substatement stat =
 ** GCC Attributes
 *)
 and print_attribute (name,args) =
-  print "HIHIHIHIHIHI";
+  print_endline "HIHIHIHIHIHI";
   if args = [] then printu name
   else begin
-    (*print name;*)
-    print "SHIT";
+    print_endline "SHIT";
+    print name;
     print "("; if name = "__attribute__" then print "(";
     (match args with
       [VARIABLE "aconst"] -> printu "const"
