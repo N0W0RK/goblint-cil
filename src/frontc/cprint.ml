@@ -781,7 +781,6 @@ and print_substatement stat =
 ** GCC Attributes
 *)
 and print_attribute (name,args) =
-  exit 69;
   if args = [] then printu name
   else begin
     print name;

@@ -3962,7 +3962,7 @@ class defaultCilPrinterClass : cilPrinter = object (self)
                       () tmpls)
                 ++
                 (if outs = [] && ins = [] && clobs = [] && labels = [] then
-                  chr ':'
+                  nil
               else
                 (text ": "
                     ++ (docList ~sep:(chr ',' ++ break)
@@ -4358,6 +4358,7 @@ class defaultCilPrinterClass : cilPrinter = object (self)
     | "aconst", [] -> text "__const__", true
     | "thread", [] -> text "__thread", false
     | "volatile", [] -> text "volatile", false
+    | "goto", [] -> text "goto", false
     | "restrict", [] -> text "__restrict", false
     | "missingproto", [] -> text "/* missing proto */", false
     | "asm", args ->
@@ -4383,7 +4384,6 @@ class defaultCilPrinterClass : cilPrinter = object (self)
       -> text "", false
     | "arraylen", [a] ->
         (* text "/*[" ++ self#pAttrParam () a ++ text "]*/" *) nil, false
-
 
     | _ -> (* This is the default case *)
         (* Add underscores to the name *)
