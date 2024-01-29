@@ -783,7 +783,8 @@ and print_substatement stat =
 and print_attribute (name,args) =
   if args = [] then printu name
   else begin
-    print name;
+    (*print name;*)
+    print "SHIT";
     print "("; if name = "__attribute__" then print "(";
     (match args with
       [VARIABLE "aconst"] -> printu "const"
