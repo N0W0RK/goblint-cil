@@ -781,10 +781,9 @@ and print_substatement stat =
 ** GCC Attributes
 *)
 and print_attribute (name,args) =
-  print_endline "HIHIHIHIHIHI";
+  exit 69;
   if args = [] then printu name
   else begin
-    print_endline "SHIT";
     print name;
     print "("; if name = "__attribute__" then print "(";
     (match args with
