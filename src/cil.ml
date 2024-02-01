@@ -838,7 +838,7 @@ and stmtkind =
   GCC), (2) templates (CR-separated), (3) a list of
   outputs, each of which is an lvalue with a constraint, (4) a list
   of input expressions along with constraints, (5) clobbered
-  registers, (5) location information, and (6) the labels list for asm goto *)
+  registers, (6) the labels list for asm goto, and (7) location information *)
 
 
 (** Instructions. They may cause effects directly but may not have control

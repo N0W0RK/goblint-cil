@@ -246,17 +246,19 @@ let transformOffsetOf (speclist, dtype) member =
 
   (* this makes sure that the labels are only allowed when goto annotation was provided *)
   let checkAsm asm =
+    let labels_no_goto = "labels provided in inline asm without goto attribute" in
+    let goto_no_labels = "expected non-empty labels list in asm goto" in
     (match asm with
     | ASM (attrs, _, details, _) ->
       (match details, (List.assoc_opt "goto" attrs) with
       | None, Some _ ->
-        parse_error "expected non-empty labels list in asm goto";
+        parse_error goto_no_labels;
         raise Parsing.Parse_error
       | Some details, Some _ when details.alabels = [] ->
-        parse_error "expected non-empty labels list in asm goto";
+        parse_error goto_no_labels;
         raise Parsing.Parse_error
       | Some details, None when details.alabels <> [] ->
-        parse_error "labels provided in inline asm without goto attribute";
+        parse_error labels_no_goto;
         raise Parsing.Parse_error
       | _, _ -> ())
     | _ -> failwith "called checkAsm on non-ASM variant");
