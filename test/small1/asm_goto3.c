@@ -1,6 +1,6 @@
 #include "testharness.h"
 
-void code() {
+int main(void) {
 start:
   asm goto ("nop" : : : : start, exit);
 exit:

@@ -6550,7 +6550,11 @@ and succpred_stmt s fallthrough rlabels =
                 | hd :: tl -> link s hd ;
                     succpred_block b fallthrough rlabels
                 end
-  | Asm _ -> trylink s fallthrough
+  | Asm (_, _, _, _, _, labels, _) -> 
+      List.iter (fun label ->
+        link s !label
+      ) labels;
+      trylink s fallthrough
 
 
 let caseRangeFold (l: label list) =

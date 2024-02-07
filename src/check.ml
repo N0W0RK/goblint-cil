@@ -809,7 +809,17 @@ and checkStmt (s: stmt) =
             cases;
 
       | Instr il -> List.iter checkInstr il
-      | Asm _ -> ()  (* Not yet implemented *)
+      | Asm (_, _, _, _, _, labels, l) ->
+        currentLoc := l;
+        List.iter (fun dest ->
+          List.iter (fun label ->
+            let name = match label with
+              | Label (name, _, true) -> name
+              | _ -> failwith "unreachable"
+            in
+            gotoTargets := (name, !dest) :: !gotoTargets
+          ) !dest.labels;
+        ) labels;
       )
     () (* argument of withContext *)
 

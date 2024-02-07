@@ -642,7 +642,14 @@ class markUsedLabels (labelMap: (string, unit) H.t) = object
         (* Mark it as used *)
         H.replace labelMap ln ();
         DoChildren
-
+    | Asm (_, _, _, _, _, labels, _) ->
+        List.iter (fun dest ->
+          let (ln, _, _), _ = labelsToKeep !dest.labels in
+          if ln = "" then
+            E.s (E.bug "rmUnused: destination of statement does not have labels");
+          H.replace labelMap ln ();
+        ) labels;
+        DoChildren
     | _ -> DoChildren
 
   method! vexpr e = match e with
