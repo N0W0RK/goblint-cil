@@ -6033,11 +6033,6 @@ let typeSigAttrs = function
 let dExp: doc -> exp =
   fun d -> Const(CStr(sprint ~width:!lineLength d, No_encoding))
 
-(* todo: is this even used anywhere *)
-(*
-let dInstr: doc -> location -> instr =
-  fun d l -> Asm([], [sprint ~width:!lineLength d], [], [], [], l)
-*)
 let dStmt: doc -> location -> stmt =
   fun d l -> mkStmt (Asm([], [sprint ~width:!lineLength d], [], [], [], [], l))
 
@@ -6550,11 +6545,7 @@ and succpred_stmt s fallthrough rlabels =
                 | hd :: tl -> link s hd ;
                     succpred_block b fallthrough rlabels
                 end
-  | Asm (_, _, _, _, _, labels, _) -> 
-      List.iter (fun label ->
-        link s !label
-      ) labels;
-      trylink s fallthrough
+  | Asm _ -> trylink s fallthrough
 
 
 let caseRangeFold (l: label list) =

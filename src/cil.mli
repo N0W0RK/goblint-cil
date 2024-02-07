@@ -1752,13 +1752,7 @@ val compactStmts: stmt list -> stmt list
 (** Returns an empty statement (of kind [Instr]) *)
 val mkEmptyStmt: unit -> stmt
 
-(** A instr to serve as a placeholder *)
-(* todo: maybe this can be removed? *)
-(*
-val dummyInstr: instr
-*)
-
-(** A statement consisting of just [dummyInstr] *)
+(** A statement to serve as a placeholder *)
 val dummyStmt: stmt
 
 (** Make a while loop. Can contain Break or Continue *)
@@ -2654,11 +2648,7 @@ val get_stmtLoc: stmtkind -> location
 (** Generate an {!exp} to be used in case of errors. *)
 val dExp: Pretty.doc -> exp
 
-(** Generate an {!instr} to be used in case of errors. *)
-(* todo: commenting this out is probably a bad idea *)
-(*
-val dInstr: Pretty.doc -> location -> instr
-*)
+(** Generate an {!stmt} to be used in case of errors. *)
 val dStmt: Pretty.doc -> location -> stmt
 
 (** Generate a {!global} to be used in case of errors. *)
