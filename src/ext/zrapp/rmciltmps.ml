@@ -994,19 +994,6 @@ class unusedRemoverClass : cilVisitor = object(self)
 	  (match IH.find iioh vi.vid with
 	    None -> true | Some _ -> false)
       end
-      (* todo *)
-      (*
-      | Asm(_,_,slvlst,_,_,_) -> begin
-	  (* make sure the outputs are in the locals list *)
-	  List.iter (fun (_,s,lv) ->
-	    match lv with (Var vi,_) ->
-	      if List.mem vi cur_func.slocals
-	      then ()
-	      else cur_func.slocals <- vi::cur_func.slocals
-	    |_ -> ()) slvlst;
-	  true
-      end
-      *)
       | _ -> true
     in
 
